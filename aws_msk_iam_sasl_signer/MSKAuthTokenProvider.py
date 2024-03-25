@@ -11,7 +11,7 @@ import botocore.session
 import pkg_resources
 from botocore.auth import SigV4QueryAuth
 from botocore.awsrequest import AWSRequest
-from botocore.config import Config
+from botocore.compat import urlencode
 from botocore.credentials import CredentialProvider, Credentials
 
 ENDPOINT_URL_TEMPLATE = "https://kafka.{}.amazonaws.com/"
@@ -82,8 +82,7 @@ def __load_credentials_from_aws_role_arn__(
     """
 
     # Create sts client
-    sts_client = boto3.client("sts", config=Config())
-
+    sts_client = boto3.client("sts")
     assumed_role = sts_client.assume_role(
         RoleArn=role_arn, RoleSessionName=sts_session_name
     )
@@ -213,9 +212,6 @@ def __construct_auth_token(region, aws_credentials):
     # Extract endpoint URL
     endpoint_url = ENDPOINT_URL_TEMPLATE.format(region)
 
-    # Set up resource path and query parameters
-    query_params = {ACTION_TYPE: ACTION_NAME}
-
     # Create SigV4 instance
     sig_v4 = SigV4QueryAuth(
         aws_credentials, SIGNING_NAME, region,
@@ -223,12 +219,14 @@ def __construct_auth_token(region, aws_credentials):
     )
 
     # Create request with url and parameters
-    request = AWSRequest(method="GET", url=endpoint_url, params=query_params)
+    request = AWSRequest(method="GET", url=endpoint_url)
 
     # Add auth to the request and prepare the request
     sig_v4.add_auth(request)
-    query_params = {USER_AGENT_KEY: __get_user_agent__()}
-    request.params = query_params
+    # Set up query parameters
+    params = {USER_AGENT_KEY: __get_user_agent__(), ACTION_TYPE: ACTION_NAME}
+    params = urlencode(list(params.items()), doseq=True)
+    request.url = '%s&%s' % (request.url, params)
     prepped = request.prepare()
 
     # Get the signed url

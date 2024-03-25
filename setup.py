@@ -15,7 +15,8 @@ with open("README.rst") as readme_file:
 with open("CHANGELOG.rst") as changelog_file:
     history = changelog_file.read()
 
-requirements = ["Click>=7.0", "boto3>=1.26.125", "botocore>=1.29.125"]
+# Use this version of boto3 and botocore instead of "boto3>=1.26.125", "botocore>=1.29.125"
+requirements = ["Click>=7.0", "boto3==1.17.112", "botocore==1.20.112"]
 
 test_requirements = [
     "pytest==7.3.1",
